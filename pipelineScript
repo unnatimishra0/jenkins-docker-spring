@@ -1,0 +1,52 @@
+pipeline {
+    agent any
+
+    tools {
+        // Install the Maven version configured as "M3" and add it to the path.
+        maven "MAVEN_HOME"
+    }
+
+    stages {
+        stage('git') {
+            steps {
+                checkout scmGit(branches: [[name: '*/main']], extensions: [], userRemoteConfigs: [[url: 'https://github.com/unnatimishra0/jenkins-docker-spring']])
+            }
+        }
+        stage('building stage') {
+            steps {
+               bat 'mvn clean package'
+
+            }
+            }
+         stage('testing stage') {
+            steps {
+               bat 'mvn test'
+
+            }
+            }
+        stage('building docker image') {
+            steps {
+               script{
+                   bat "wsl/usr/bin/docker build -t unnatimishra007/jenkins-docker-integration:latest ."
+               }
+
+            }
+            }
+       stage('Push Docker Image') {
+            steps {
+                bat '''
+                    echo Unnati@123| wsl /usr/bin/docker login -u unnatimishra007 --password-stdin
+                    wsl /usr/bin/docker push unnatimishra007/jenkins-docker-integration:latest
+                '''
+            }
+        }
+        stage('Run Container') {
+            steps {
+                script {
+                    // Run the Docker container
+                    bat 'wsl /usr/bin/docker run -d -p 8087:8080 unnatimishra007/jenkins-docker-integration'
+                }
+            }
+        }
+}
+}
